@@ -4,8 +4,7 @@ import { DayData, Memory, MoodOption, Theme } from './types';
 import { generateTimelineDays, START_DATE, DEFAULT_MOODS, THEMES } from './utils';
 import { StarGrid } from './components/StarGrid';
 import { BentoView } from './components/BentoView';
-import { ShareModal } from './components/ShareModal';
-import { Heart, Palette, Check, Share2 } from 'lucide-react';
+import { Heart, Palette, Check } from 'lucide-react';
 import { format } from 'date-fns';
 
 const App: React.FC = () => {
@@ -18,7 +17,6 @@ const App: React.FC = () => {
     // Theme State
     const [currentTheme, setCurrentTheme] = useState<Theme>(THEMES[0]);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const [isShareOpen, setIsShareOpen] = useState(false);
 
     // Initial Load
     useEffect(() => {
@@ -110,20 +108,15 @@ const App: React.FC = () => {
             [day.dateStr]: newMemory
         };
 
-        try {
-            setMemories(updatedMemories);
-            localStorage.setItem('21months_memories', JSON.stringify(updatedMemories));
-            
-            // Update selected day to reflect changes immediately
-            setSelectedDay({
-                ...day,
-                hasMemory: true,
-                memory: newMemory
-            });
-        } catch (e) {
-            alert("保存失败：可能是图片太大导致存储空间不足。请尝试减少图片数量。");
-            console.error("Storage error", e);
-        }
+        setMemories(updatedMemories);
+        localStorage.setItem('21months_memories', JSON.stringify(updatedMemories));
+        
+        // Update selected day to reflect changes immediately
+        setSelectedDay({
+            ...day,
+            hasMemory: true,
+            memory: newMemory
+        });
     };
 
     // Add new mood handler
@@ -138,109 +131,6 @@ const App: React.FC = () => {
         setCurrentTheme(theme);
         localStorage.setItem('21months_theme_id', theme.id);
         setIsSettingsOpen(false);
-    };
-
-    // EXPORT Data
-    const handleExport = () => {
-        const data = {
-            memories,
-            moodOptions,
-            exportedAt: new Date().toISOString(),
-            appVersion: '1.0'
-        };
-        const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `21months_memories_${format(new Date(), 'yyyyMMdd')}.json`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
-
-    // IMPORT Data & MERGE
-    const handleImport = async (file: File) => {
-        return new Promise<void>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const importedData = JSON.parse(e.target?.result as string);
-                    if (!importedData || !importedData.memories) {
-                        throw new Error("Invalid file format");
-                    }
-
-                    const remoteMemories = importedData.memories as Record<string, Memory>;
-                    const mergedMemories = { ...memories };
-                    
-                    // Merge Logic
-                    Object.keys(remoteMemories).forEach(dateStr => {
-                        const remote = remoteMemories[dateStr];
-                        const local = mergedMemories[dateStr];
-
-                        if (!local) {
-                            // Case 1: Only remote exists -> Add it
-                            mergedMemories[dateStr] = remote;
-                        } else {
-                            // Case 2: Conflict -> Smart Merge
-                            // Don't merge if they are effectively identical
-                            if (local.description === remote.description && local.title === remote.title) {
-                                return; 
-                            }
-
-                            // Title Merge
-                            const newTitle = local.title === remote.title 
-                                ? local.title 
-                                : `${local.title} & ${remote.title}`;
-                            
-                            // Description Merge
-                            // Use a separator to distinguish users
-                            const newDescription = `${local.description}\n\n———— ✦ ————\n\n${remote.description}`;
-
-                            // Image Merge (Deduplicate based on base64 string content)
-                            const localImages = local.images || (local.imageUrl ? [local.imageUrl] : []);
-                            const remoteImages = remote.images || (remote.imageUrl ? [remote.imageUrl] : []);
-                            const uniqueImages = Array.from(new Set([...localImages, ...remoteImages]));
-
-                            // Mood: Keep Local to maintain color scheme consistency, or prioritize user choice
-                            // We stick to local mood for now, as UI only allows one.
-
-                            mergedMemories[dateStr] = {
-                                ...local,
-                                title: newTitle,
-                                description: newDescription,
-                                images: uniqueImages,
-                                imageUrl: uniqueImages.length > 0 ? uniqueImages[0] : undefined,
-                                // Use local voice note if exists, otherwise try remote
-                                voiceNoteUrl: local.voiceNoteUrl || remote.voiceNoteUrl 
-                            };
-                        }
-                    });
-
-                    // Merge Moods (Optional: Add custom moods from partner)
-                    if (importedData.moodOptions) {
-                        const remoteMoods = importedData.moodOptions as MoodOption[];
-                        const currentMoodLabels = new Set(moodOptions.map(m => m.label));
-                        const newMoodsToAdd = remoteMoods.filter(rm => !currentMoodLabels.has(rm.label));
-                        
-                        if (newMoodsToAdd.length > 0) {
-                            const mergedMoods = [...moodOptions, ...newMoodsToAdd];
-                            setMoodOptions(mergedMoods);
-                            localStorage.setItem('21months_moods', JSON.stringify(mergedMoods));
-                        }
-                    }
-
-                    // Save Final Merged State
-                    setMemories(mergedMemories);
-                    localStorage.setItem('21months_memories', JSON.stringify(mergedMemories));
-                    resolve();
-
-                } catch (err) {
-                    reject(err);
-                }
-            };
-            reader.onerror = () => reject(reader.error);
-            reader.readAsText(file);
-        });
     };
 
     // Derived State: Re-calculate days whenever memories change
@@ -263,20 +153,12 @@ const App: React.FC = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
                     >
-                        <h1 className={`font-serif text-4xl md:text-5xl font-medium tracking-tight ${currentTheme.primaryColor} transition-colors duration-500`}>21 Grams of Days</h1>
+                        <h1 className={`font-serif text-4xl md:text-5xl font-medium tracking-tight ${currentTheme.primaryColor} transition-colors duration-500`}>21 Months</h1>
+                        <p className={`${currentTheme.fadedColor} text-[10px] md:text-xs mt-2 tracking-[0.4em] uppercase font-bold transition-colors duration-500`}>Graduation — Birthday</p>
                     </motion.div>
                 </div>
                 
                 <div className="pointer-events-auto flex items-start gap-4">
-                     {/* Share / Sync Button */}
-                     <button 
-                        onClick={() => setIsShareOpen(true)}
-                        className={`p-2 rounded-full backdrop-blur-md transition-all ${currentTheme.glassColor} ${currentTheme.primaryColor} hover:bg-white/60 hover:scale-105 active:scale-95`}
-                        title="交换/合并记忆"
-                     >
-                        <Share2 size={20} />
-                     </button>
-
                      {/* Theme Toggle Button */}
                      <div className="relative">
                         <button 
@@ -370,17 +252,6 @@ const App: React.FC = () => {
                         onAddMood={handleAddMood}
                         onClose={() => setSelectedDay(null)}
                         onSaveMemory={handleSaveMemory}
-                    />
-                )}
-            </AnimatePresence>
-
-            {/* Share Modal Overlay */}
-            <AnimatePresence>
-                {isShareOpen && (
-                    <ShareModal 
-                        onClose={() => setIsShareOpen(false)}
-                        onExport={handleExport}
-                        onImport={handleImport}
                     />
                 )}
             </AnimatePresence>
