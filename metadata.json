@@ -1,0 +1,7 @@
+{
+  "name": "21 Months",
+  "description": "A romantic, interactive timeline visualizing the 21 months between graduation and a birthday as a star grid with deep-dive bento box memories.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

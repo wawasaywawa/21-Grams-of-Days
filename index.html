@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>21 Months</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        rose: {
+                            50: '#fff0f3',
+                            100: '#ffe3e8',
+                            200: '#ffcdd9',
+                            300: '#ff9cb3',
+                            400: '#ff6487',
+                            500: '#f73562',
+                            800: '#9e1a40',
+                            900: '#851939',
+                        },
+                        plum: {
+                            50: '#fbf7fc',
+                            100: '#f4eef8',
+                            200: '#ebdcf2',
+                            300: '#dec2ea',
+                            400: '#cd9fe0',
+                            500: '#b576d0',
+                            600: '#9b56ba',
+                            700: '#82429e',
+                            800: '#6c3882',
+                            900: '#582e69',
+                            950: '#3a1a45',
+                        },
+                        star: {
+                            inactive: '#e5e7eb', // gray-200
+                            glow: '#ffd1dc', // light pink
+                            gold: '#fcd34d', // amber-300
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Manrope', 'sans-serif'],
+                        serif: ['Playfair Display', 'serif'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            /* Light Blue-Pink Gradient: Sky Blue -> Soft Lavender -> Rose Pink */
+            /* Using slightly saturated tones to ensure white dots remain visible */
+            background: linear-gradient(135deg, #89c1f5 0%, #d8bceb 50%, #f2a8c3 100%);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+        
+        /* Custom Scrollbar for Bento Content */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(108, 56, 130, 0.2);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(108, 56, 130, 0.4);
+        }
+
+        /* Glassmorphism Utilities */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.35);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+        
+        /* Star Glow Effect */
+        .star-glow-base {
+            box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.5);
+        }
+        
+        .star-glow-active {
+            box-shadow: 0 0 15px 3px rgba(255, 209, 220, 0.8);
+        }
+        .star-glow-gold {
+            box-shadow: 0 0 20px 4px rgba(252, 211, 77, 0.6);
+        }
+
+        /* Hide Scrollbar globally but allow scrolling */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "framer-motion": "https://esm.sh/framer-motion@^12.34.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "date-fns": "https://esm.sh/date-fns@^4.1.0"
+  }
+}
+</script>
+</head>
+<body>
+    <div id="root"></div>
+</body>
+</html>
