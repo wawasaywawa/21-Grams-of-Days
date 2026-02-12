@@ -44,7 +44,12 @@ export const THEMES: Theme[] = [
         primaryColor: 'text-plum-900',
         secondaryColor: 'text-plum-900/60',
         fadedColor: 'text-plum-900/40',
-        glassColor: 'bg-white/40'
+        glassColor: 'bg-white/40',
+        accentButton: 'bg-plum-600 hover:bg-plum-700 text-white',
+        accentMuted: 'text-plum-600 border-plum-200',
+        accentPlaceholder: 'placeholder:text-plum-400',
+        tooltipClass: 'bg-plum-900/85 text-white backdrop-blur-sm',
+        accentCheckbox: 'accent-plum-600'
     },
     {
         id: 'midnight',
@@ -53,7 +58,16 @@ export const THEMES: Theme[] = [
         primaryColor: 'text-white',
         secondaryColor: 'text-white/60',
         fadedColor: 'text-white/40',
-        glassColor: 'bg-slate-900/40'
+        glassColor: 'bg-slate-900/40',
+        accentButton: 'bg-indigo-500 hover:bg-indigo-600 text-white',
+        accentMuted: 'text-white/70 border-white/30',
+        accentPlaceholder: 'placeholder:text-white/50',
+        panelPrimaryColor: 'text-slate-900',
+        panelSecondaryColor: 'text-slate-700',
+        panelFadedColor: 'text-slate-600',
+        panelPlaceholder: 'placeholder:text-slate-500',
+        tooltipClass: 'bg-indigo-950/90 text-white backdrop-blur-sm',
+        accentCheckbox: 'accent-indigo-500'
     },
     {
         id: 'sunset',
@@ -62,7 +76,12 @@ export const THEMES: Theme[] = [
         primaryColor: 'text-orange-950',
         secondaryColor: 'text-orange-950/60',
         fadedColor: 'text-orange-950/40',
-        glassColor: 'bg-white/40'
+        glassColor: 'bg-white/40',
+        accentButton: 'bg-orange-500 hover:bg-orange-600 text-white',
+        accentMuted: 'text-orange-700 border-orange-200',
+        accentPlaceholder: 'placeholder:text-orange-500',
+        tooltipClass: 'bg-orange-900/85 text-white backdrop-blur-sm',
+        accentCheckbox: 'accent-orange-500'
     },
     {
         id: 'aurora',
@@ -71,7 +90,12 @@ export const THEMES: Theme[] = [
         primaryColor: 'text-teal-900',
         secondaryColor: 'text-teal-900/60',
         fadedColor: 'text-teal-900/40',
-        glassColor: 'bg-white/40'
+        glassColor: 'bg-white/40',
+        accentButton: 'bg-teal-500 hover:bg-teal-600 text-white',
+        accentMuted: 'text-teal-700 border-teal-200',
+        accentPlaceholder: 'placeholder:text-teal-500',
+        tooltipClass: 'bg-teal-900/85 text-white backdrop-blur-sm',
+        accentCheckbox: 'accent-teal-500'
     },
     {
         id: 'deep-space',
@@ -80,7 +104,16 @@ export const THEMES: Theme[] = [
         primaryColor: 'text-sky-100',
         secondaryColor: 'text-sky-100/60',
         fadedColor: 'text-sky-100/40',
-        glassColor: 'bg-slate-900/30'
+        glassColor: 'bg-slate-900/30',
+        accentButton: 'bg-sky-500 hover:bg-sky-600 text-white',
+        accentMuted: 'text-sky-200/80 border-white/20',
+        accentPlaceholder: 'placeholder:text-sky-300',
+        panelPrimaryColor: 'text-slate-900',
+        panelSecondaryColor: 'text-slate-700',
+        panelFadedColor: 'text-slate-600',
+        panelPlaceholder: 'placeholder:text-slate-500',
+        tooltipClass: 'bg-slate-800/90 text-sky-50 backdrop-blur-sm',
+        accentCheckbox: 'accent-sky-500'
     }
 ];
 
@@ -130,6 +163,45 @@ export const generateTimelineDays = (memories: Record<string, Memory>): DayData[
     return days;
 };
 
+/** 合并视图：生成带「我的」与「伴侣」记忆的时间线（同一天可能两者都有） */
+export const generateTimelineDaysWithPartner = (
+    memories: Record<string, Memory>,
+    partnerMemories: Record<string, Memory>
+): DayData[] => {
+    const today = startOfDay(new Date());
+    let endDate = TARGET_END_DATE;
+    if (isAfter(today, endDate)) endDate = today;
+    const allKeys = new Set([...Object.keys(memories), ...Object.keys(partnerMemories)]);
+    if (allKeys.size > 0) {
+        const validDates = [...allKeys]
+            .map(d => parseISO(d))
+            .filter(d => !isNaN(d.getTime()));
+        if (validDates.length > 0) {
+            const last = max(validDates);
+            if (isAfter(last, endDate)) endDate = last;
+        }
+    }
+    const totalDays = differenceInDays(endDate, START_DATE) + 1;
+    const days: DayData[] = [];
+    for (let i = 0; i < totalDays; i++) {
+        const currentDate = addDays(START_DATE, i);
+        const dateStr = format(currentDate, 'yyyy-MM-dd');
+        const mine = memories[dateStr];
+        const partner = partnerMemories[dateStr];
+        days.push({
+            date: currentDate,
+            dateStr,
+            isToday: isSameDay(currentDate, today),
+            isPast: isBefore(currentDate, today),
+            isFuture: isAfter(currentDate, today),
+            hasMemory: !!mine || !!partner,
+            memory: mine,
+            partnerMemory: partner,
+        });
+    }
+    return days;
+};
+
 export const formatDateDisplay = (date: Date): string => {
     return format(date, 'MMMM d, yyyy');
 };
@@ -147,3 +219,18 @@ export const fileToBase64 = (blob: Blob): Promise<string> => {
     reader.onerror = error => reject(error);
   });
 };
+
+// Helper to convert data URL (base64) back to Blob
+export const dataUrlToBlob = (dataUrl: string): Blob => {
+  const [header, base64] = dataUrl.split(',');
+  const match = header.match(/data:(.*?);base64/);
+  const mime = match ? match[1] : 'application/octet-stream';
+  const binary = atob(base64);
+  const len = binary.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new Blob([bytes], { type: mime });
+};
+

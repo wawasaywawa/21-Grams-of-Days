@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
-import { DayData, Memory, MoodOption } from '../types';
+import { DayData, Memory, MoodOption, Theme } from '../types';
 import { X, Upload, Save, Mic, Trash2, Music, Plus, Check, Square, ImageIcon } from 'lucide-react';
 import { fileToBase64, COLOR_THEMES } from '../utils';
 
@@ -8,12 +8,17 @@ interface EditModalProps {
     day: DayData;
     initialData?: Memory;
     moodOptions: MoodOption[];
+    theme: Theme;
     onAddMood: (mood: MoodOption) => void;
     onClose: () => void;
     onSave: (data: Partial<Memory>) => void;
 }
 
-export const EditModal: React.FC<EditModalProps> = ({ day, initialData, moodOptions, onAddMood, onClose, onSave }) => {
+export const EditModal: React.FC<EditModalProps> = ({ day, initialData, moodOptions, theme, onAddMood, onClose, onSave }) => {
+    const pPrimary = theme.panelPrimaryColor ?? theme.primaryColor;
+    const pSecondary = theme.panelSecondaryColor ?? theme.secondaryColor;
+    const pFaded = theme.panelFadedColor ?? theme.fadedColor;
+    const pPlaceholder = theme.panelPlaceholder ?? theme.accentPlaceholder;
     const [title, setTitle] = useState(initialData?.title || '');
     const [description, setDescription] = useState(initialData?.description || '');
     const [mood, setMood] = useState<string>(initialData?.mood || '平淡');
@@ -195,9 +200,9 @@ export const EditModal: React.FC<EditModalProps> = ({ day, initialData, moodOpti
                 initial={{ scale: 0.9, y: 20 }}
                 animate={{ scale: 1, y: 0 }}
             >
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-rose-50">
-                    <h3 className="font-serif text-xl text-plum-900">编辑记忆</h3>
-                    <button onClick={onClose} className="p-2 hover:bg-rose-100 rounded-full text-plum-800 transition-colors">
+                <div className={`p-6 border-b border-white/20 flex justify-between items-center ${theme.glassColor}`}>
+                    <h3 className={`font-serif text-xl ${pPrimary}`}>编辑记忆</h3>
+                    <button onClick={onClose} className={`p-2 hover:bg-white/40 rounded-full ${pSecondary} transition-colors`}>
                         <X size={20} />
                     </button>
                 </div>
@@ -205,20 +210,20 @@ export const EditModal: React.FC<EditModalProps> = ({ day, initialData, moodOpti
                 <div className="p-6 overflow-y-auto space-y-6 flex-1 custom-scrollbar">
                     {/* Title Input */}
                     <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-plum-500 mb-2">标题</label>
+                        <label className={`block text-xs font-bold uppercase tracking-wider ${pFaded} mb-2`}>标题</label>
                         <input 
                             type="text" 
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             placeholder="给今天起个名字..."
-                            className="w-full px-4 py-3 rounded-xl bg-gray-50 border-transparent focus:border-rose-300 focus:bg-white focus:ring-0 transition-all font-serif text-lg text-plum-900 placeholder:text-plum-900/30"
+                            className={`w-full px-4 py-3 rounded-xl bg-white/60 border border-white/40 focus:bg-white focus:ring-2 focus:ring-white/50 transition-all font-serif text-lg ${pPrimary} ${pPlaceholder}`}
                         />
                     </div>
 
                     {/* Mood Selection */}
                     <div>
                         <div className="flex justify-between items-center mb-2">
-                            <label className="block text-xs font-bold uppercase tracking-wider text-plum-500">心情</label>
+                            <label className={`block text-xs font-bold uppercase tracking-wider ${pFaded}`}>心情</label>
                         </div>
                         
                         <div className="flex flex-wrap gap-2 mb-3">
@@ -226,14 +231,14 @@ export const EditModal: React.FC<EditModalProps> = ({ day, initialData, moodOpti
                                 <button
                                     key={m.label}
                                     onClick={() => setMood(m.label)}
-                                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${mood === m.label ? m.colorClass + ' ring-2 ring-offset-1 ring-plum-200 shadow-md' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${mood === m.label ? m.colorClass + ' ring-2 ring-offset-1 ring-white/50 shadow-md' : 'bg-white/60 text-gray-500 hover:bg-white/80'}`}
                                 >
                                     {m.label}
                                 </button>
                             ))}
                             <button
                                 onClick={() => setIsCreatingMood(!isCreatingMood)}
-                                className={`px-2 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1 ${isCreatingMood ? 'bg-plum-600 text-white' : 'bg-white border border-dashed border-plum-300 text-plum-500 hover:border-plum-500 hover:text-plum-600'}`}
+                                className={`px-2 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1 ${isCreatingMood ? theme.accentButton : theme.panelPrimaryColor ? 'bg-white border border-dashed border-slate-300 ' + pFaded : 'bg-white border border-dashed ' + theme.accentMuted}`}
                             >
                                 <Plus size={14} />
                             </button>
@@ -255,12 +260,12 @@ export const EditModal: React.FC<EditModalProps> = ({ day, initialData, moodOpti
                                                 value={newMoodLabel}
                                                 onChange={(e) => setNewMoodLabel(e.target.value)}
                                                 placeholder="心情标签..."
-                                                className="flex-1 px-3 py-2 rounded-lg text-sm border-gray-200 focus:border-plum-300 focus:ring-0"
+                                                className={`flex-1 px-3 py-2 rounded-lg text-sm border border-white/40 focus:ring-2 focus:ring-white/50 ${pPrimary}`}
                                             />
                                             <button 
                                                 onClick={handleCreateMood}
                                                 disabled={!newMoodLabel.trim()}
-                                                className="px-3 py-2 bg-plum-600 text-white rounded-lg disabled:opacity-50 hover:bg-plum-700"
+                                                className={`px-3 py-2 ${theme.accentButton} rounded-lg disabled:opacity-50`}
                                             >
                                                 <Check size={16} />
                                             </button>
@@ -268,13 +273,13 @@ export const EditModal: React.FC<EditModalProps> = ({ day, initialData, moodOpti
                                         <div>
                                             <p className="text-[10px] text-gray-400 mb-2 uppercase font-bold">选择颜色</p>
                                             <div className="flex flex-wrap gap-2">
-                                                {COLOR_THEMES.map(theme => (
+                                                {COLOR_THEMES.map(colorTheme => (
                                                     <button
-                                                        key={theme.name}
-                                                        onClick={() => setNewMoodColorBase(theme)}
-                                                        className={`w-6 h-6 rounded-full border-2 ${theme.class.split(' ')[0]} ${newMoodColorBase.name === theme.name ? 'border-plum-600 scale-110' : 'border-transparent hover:scale-110'}`}
-                                                        style={{ backgroundColor: theme.hex }}
-                                                        title={theme.name}
+                                                        key={colorTheme.name}
+                                                        onClick={() => setNewMoodColorBase(colorTheme)}
+                                                        className={`w-6 h-6 rounded-full border-2 ${colorTheme.class.split(' ')[0]} ${newMoodColorBase.name === colorTheme.name ? 'scale-110 ring-2 ring-offset-1 ring-black/20' : 'border-transparent hover:scale-110'}`}
+                                                        style={{ backgroundColor: colorTheme.hex }}
+                                                        title={colorTheme.name}
                                                     />
                                                 ))}
                                             </div>
@@ -287,20 +292,20 @@ export const EditModal: React.FC<EditModalProps> = ({ day, initialData, moodOpti
 
                     {/* Description */}
                     <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-plum-500 mb-2">故事</label>
+                        <label className={`block text-xs font-bold uppercase tracking-wider ${pFaded} mb-2`}>故事</label>
                         <textarea 
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="今天发生了什么？"
                             rows={4}
-                            className="w-full px-4 py-3 rounded-xl bg-gray-50 border-transparent focus:border-rose-300 focus:bg-white focus:ring-0 transition-all text-sm text-plum-800 placeholder:text-plum-900/30 resize-none"
+                            className={`w-full px-4 py-3 rounded-xl bg-white/60 border border-white/40 focus:bg-white focus:ring-2 focus:ring-white/50 transition-all text-sm ${pSecondary} ${pPlaceholder} resize-none`}
                         />
                     </div>
 
                     {/* Image Upload (Multi + Reorder) */}
                     <div>
                         <div className="flex justify-between items-center mb-2">
-                            <label className="block text-xs font-bold uppercase tracking-wider text-plum-500">照片 ({images.length}/4) - 长按拖动排序</label>
+                            <label className={`block text-xs font-bold uppercase tracking-wider ${pFaded}`}>照片 ({images.length}/4) - 长按拖动排序</label>
                         </div>
                         
                         <Reorder.Group 
@@ -334,7 +339,7 @@ export const EditModal: React.FC<EditModalProps> = ({ day, initialData, moodOpti
                             {images.length < 4 && (
                                 <div 
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="aspect-square rounded-xl border-2 border-dashed border-plum-200 bg-plum-50/50 hover:bg-plum-50 transition-colors cursor-pointer flex flex-col items-center justify-center text-plum-400 group"
+                                    className={`aspect-square rounded-xl border-2 border-dashed hover:bg-white/50 transition-colors cursor-pointer flex flex-col items-center justify-center group ${theme.panelPrimaryColor ? `border-slate-300 ${theme.glassColor} ${pFaded}` : theme.accentMuted + ' ' + theme.glassColor + ' ' + theme.fadedColor}`}
                                 >
                                     <div className="p-3 rounded-full bg-white group-hover:scale-110 transition-transform shadow-sm">
                                         <Plus size={24} />
@@ -356,7 +361,7 @@ export const EditModal: React.FC<EditModalProps> = ({ day, initialData, moodOpti
 
                     {/* Voice Note Section */}
                     <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-plum-500 mb-2">语音</label>
+                        <label className={`block text-xs font-bold uppercase tracking-wider ${pFaded} mb-2`}>语音</label>
                         <div className="flex items-center gap-3">
                             <input 
                                 type="file" 
@@ -393,14 +398,14 @@ export const EditModal: React.FC<EditModalProps> = ({ day, initialData, moodOpti
                                 <>
                                     <button 
                                         onClick={handleStartRecording}
-                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-plum-200 bg-plum-50 hover:bg-plum-100 text-plum-700 transition-all"
+                                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed hover:bg-white/50 transition-all ${theme.panelPrimaryColor ? `border-slate-300 ${theme.glassColor} ${pSecondary}` : theme.accentMuted + ' ' + theme.glassColor + ' ' + theme.secondaryColor}`}
                                     >
                                         <Mic size={18} />
                                         <span className="text-sm font-medium">录音</span>
                                     </button>
                                     <button 
                                         onClick={() => audioInputRef.current?.click()}
-                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-plum-200 bg-white hover:bg-gray-50 text-plum-600 transition-all"
+                                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed bg-white hover:bg-white/80 transition-all ${theme.panelPrimaryColor ? `border-slate-300 ${pSecondary}` : theme.accentMuted + ' ' + theme.accentMuted.split(' ')[0]}`}
                                     >
                                         <Upload size={18} />
                                         <span className="text-sm font-medium">上传</span>
@@ -411,10 +416,10 @@ export const EditModal: React.FC<EditModalProps> = ({ day, initialData, moodOpti
                     </div>
                 </div>
 
-                <div className="p-6 border-t border-gray-100 bg-gray-50">
+                <div className={`p-6 border-t border-white/20 ${theme.glassColor}`}>
                     <button 
                         onClick={handleSave}
-                        className="w-full py-3 bg-plum-600 hover:bg-plum-700 text-white rounded-xl font-medium shadow-lg shadow-plum-600/20 transition-all flex items-center justify-center gap-2"
+                        className={`w-full py-3 ${theme.accentButton} rounded-xl font-medium shadow-lg transition-all flex items-center justify-center gap-2`}
                     >
                         <Save size={18} />
                         保存记忆

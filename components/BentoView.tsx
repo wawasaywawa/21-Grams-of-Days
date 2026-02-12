@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DayData, MoodOption } from '../types';
+import { DayData, MoodOption, Theme } from '../types';
 import { formatDateDisplay, getDayIndex } from '../utils';
 import { X, Play, Pause, Edit2, Mic, Calendar } from 'lucide-react';
 import { EditModal } from './EditModal';
@@ -8,29 +8,36 @@ import { EditModal } from './EditModal';
 interface BentoViewProps {
     day: DayData;
     moodOptions: MoodOption[];
+    theme: Theme;
+    partnerDisplayName: string;
     onAddMood: (mood: MoodOption) => void;
     onClose: () => void;
     onSaveMemory: (day: DayData, memoryData: any) => void;
+    isMergeView?: boolean;
 }
 
-export const BentoView: React.FC<BentoViewProps> = ({ day, moodOptions, onAddMood, onClose, onSaveMemory }) => {
+export const BentoView: React.FC<BentoViewProps> = ({ day, moodOptions, theme, partnerDisplayName, onAddMood, onClose, onSaveMemory, isMergeView = false }) => {
+    const pPrimary = theme.panelPrimaryColor ?? theme.primaryColor;
+    const pSecondary = theme.panelSecondaryColor ?? theme.secondaryColor;
+    const pFaded = theme.panelFadedColor ?? theme.fadedColor;
     const [isPlaying, setIsPlaying] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [activeTab, setActiveTab] = useState<'mine' | 'partner'>('mine');
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     const dayIndex = getDayIndex(day.date);
-    
-    // Default content if no memory exists
-    const title = day.memory?.title || "安静的一天";
-    const description = day.memory?.description || "这天没有特别的记录，只是我们漫长星河中的一颗星星。";
-    
-    // Normalize images: favor array, fallback to imageUrl, default to empty array (no placeholder)
-    const images = (day.memory?.images && day.memory.images.length > 0) 
-        ? day.memory.images 
-        : (day.memory?.imageUrl ? [day.memory.imageUrl] : []);
+    const showMerge = isMergeView && (day.memory || day.partnerMemory);
+    const displayMemory = showMerge
+        ? (activeTab === 'mine' ? day.memory : day.partnerMemory)
+        : day.memory;
 
-    const mood = day.memory?.mood || '平淡';
-    const voiceNoteUrl = day.memory?.voiceNoteUrl;
+    const title = displayMemory?.title || "安静的一天";
+    const description = displayMemory?.description || "这天没有特别的记录，只是我们漫长星河中的一颗星星。";
+    const images = (displayMemory?.images && displayMemory.images.length > 0)
+        ? displayMemory.images
+        : (displayMemory?.imageUrl ? [displayMemory.imageUrl] : []);
+    const mood = displayMemory?.mood || '平淡';
+    const voiceNoteUrl = displayMemory?.voiceNoteUrl;
     
     // Resolve Mood Color
     const moodOption = moodOptions.find(m => m.label === mood);
@@ -136,32 +143,56 @@ export const BentoView: React.FC<BentoViewProps> = ({ day, moodOptions, onAddMoo
             exit={{ opacity: 0 }}
         >
             {/* Backdrop Blur */}
-            <div className="absolute inset-0 bg-plum-950/20 backdrop-blur-md" onClick={onClose} />
+            <div className="absolute inset-0 bg-black/30 backdrop-blur-md" onClick={onClose} />
 
             <motion.div 
                 layoutId={`star-${day.dateStr}`}
-                className="relative w-full max-w-5xl aspect-[4/5] md:aspect-[16/9] glass-panel rounded-[2rem] md:rounded-[3rem] overflow-hidden flex flex-col md:flex-row shadow-2xl"
+                className="relative w-full max-w-5xl aspect-[4/5] md:aspect-[16/9] glass-panel rounded-[2rem] md:rounded-[3rem] overflow-hidden flex flex-col shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Close Button */}
-                <button 
-                    onClick={onClose}
-                    className="absolute top-6 right-6 z-20 p-2 rounded-full bg-white/20 hover:bg-white/40 transition-colors text-plum-900"
-                >
-                    <X size={24} />
-                </button>
-
-                {/* Edit Trigger (Hidden/Subtle) */}
-                <button
-                    onClick={() => setIsEditing(true)}
-                    className="absolute bottom-6 right-6 z-20 p-3 rounded-full bg-white/20 hover:bg-white/40 transition-colors text-plum-900 opacity-50 hover:opacity-100"
-                    title="Edit Memory"
-                >
-                    <Edit2 size={18} />
-                </button>
+                {/* 顶部栏：关闭按钮 + 我的/ta的 Tab，避免与便当格重叠 */}
+                <div className="flex-shrink-0 flex items-center justify-between px-5 py-4 md:px-6 md:py-4 border-b border-white/20">
+                    <div className="flex items-center gap-2">
+                        {showMerge && (
+                            <>
+                                <button
+                                    onClick={() => setActiveTab('mine')}
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider ${activeTab === 'mine' ? 'bg-white/80 shadow ' + theme.primaryColor : 'bg-white/30 ' + theme.secondaryColor}`}
+                                >
+                                    我的
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('partner')}
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider ${activeTab === 'partner' ? 'bg-white/80 shadow ' + theme.primaryColor : 'bg-white/30 ' + theme.secondaryColor}`}
+                                >
+                                    {partnerDisplayName}的
+                                </button>
+                            </>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {(!showMerge || activeTab === 'mine') && (
+                            <button
+                                onClick={() => setIsEditing(true)}
+                                className={`p-2 rounded-full ${theme.glassColor} hover:bg-white/40 transition-colors ${theme.primaryColor}`}
+                                title="Edit Memory"
+                                aria-label="编辑"
+                            >
+                                <Edit2 size={18} />
+                            </button>
+                        )}
+                        <button
+                            onClick={onClose}
+                                className={`p-2 rounded-full ${theme.glassColor} hover:bg-white/40 transition-colors ${theme.primaryColor}`}
+                                        aria-label="关闭"
+                                    >
+                                        <X size={22} />
+                        </button>
+                    </div>
+                </div>
 
                 {/* BENTO GRID LAYOUT */}
-                <div className="w-full h-full p-6 md:p-8 grid grid-cols-1 md:grid-cols-4 md:grid-rows-3 gap-4 md:gap-6 overflow-y-auto md:overflow-hidden custom-scrollbar">
+                <div className="flex-1 min-h-0 p-4 md:p-6 grid grid-cols-1 md:grid-cols-4 md:grid-rows-3 gap-4 md:gap-6 overflow-y-auto md:overflow-hidden custom-scrollbar">
                     
                     {/* 1. Date Anchor (Top Left) */}
                     <div className="md:col-span-1 md:row-span-1 glass-card rounded-3xl p-6 flex flex-col justify-center overflow-hidden">
@@ -170,7 +201,7 @@ export const BentoView: React.FC<BentoViewProps> = ({ day, moodOptions, onAddMoo
                             variants={contentVariants}
                             initial="hidden"
                             animate="visible"
-                            className="text-3xl font-serif text-plum-900 italic leading-none"
+                            className={`text-3xl font-serif ${pPrimary} italic leading-none`}
                         >
                             {formatDateDisplay(day.date).split(',')[0]}
                         </motion.h2>
@@ -179,7 +210,7 @@ export const BentoView: React.FC<BentoViewProps> = ({ day, moodOptions, onAddMoo
                             variants={contentVariants}
                             initial="hidden"
                             animate="visible"
-                            className="text-lg font-serif text-plum-900/60 mt-1"
+                            className={`text-lg font-serif ${pSecondary} mt-1`}
                         >
                             {formatDateDisplay(day.date).split(',')[1]}
                         </motion.span>
@@ -200,7 +231,7 @@ export const BentoView: React.FC<BentoViewProps> = ({ day, moodOptions, onAddMoo
                             variants={contentVariants}
                             initial="hidden"
                             animate="visible"
-                            className="text-xs font-bold uppercase tracking-widest text-plum-600 mb-3 flex items-center gap-2"
+                            className={`text-xs font-bold uppercase tracking-widest ${pFaded} mb-3 flex items-center gap-2`}
                         >
                              记录
                         </motion.h3>
@@ -210,7 +241,7 @@ export const BentoView: React.FC<BentoViewProps> = ({ day, moodOptions, onAddMoo
                                 variants={contentVariants}
                                 initial="hidden"
                                 animate="visible"
-                                className="font-serif text-xl mb-3 text-plum-900"
+                                className={`font-serif text-xl mb-3 ${pPrimary}`}
                             >
                                 {title}
                             </motion.h4>
@@ -219,7 +250,7 @@ export const BentoView: React.FC<BentoViewProps> = ({ day, moodOptions, onAddMoo
                                 variants={contentVariants}
                                 initial="hidden"
                                 animate="visible"
-                                className="font-sans text-sm leading-relaxed text-plum-800/80 whitespace-pre-wrap"
+                                className={`font-sans text-sm leading-relaxed ${pSecondary} whitespace-pre-wrap`}
                             >
                                 {description}
                             </motion.p>
@@ -234,7 +265,7 @@ export const BentoView: React.FC<BentoViewProps> = ({ day, moodOptions, onAddMoo
                                 variants={contentVariants}
                                 initial="hidden"
                                 animate="visible"
-                                className="text-[10px] font-bold tracking-widest text-plum-600 uppercase"
+                                className={`text-[10px] font-bold tracking-widest ${pFaded} uppercase`}
                             >
                                 DAY OF JOURNEY
                             </motion.span>
@@ -243,7 +274,7 @@ export const BentoView: React.FC<BentoViewProps> = ({ day, moodOptions, onAddMoo
                                 variants={contentVariants}
                                 initial="hidden"
                                 animate="visible"
-                                className="text-5xl md:text-6xl font-serif text-plum-900 mt-2"
+                                className={`text-5xl md:text-6xl font-serif ${pPrimary} mt-2`}
                             >
                                 {dayIndex}
                             </motion.div>
@@ -281,7 +312,7 @@ export const BentoView: React.FC<BentoViewProps> = ({ day, moodOptions, onAddMoo
                                     />
                                     <button 
                                         onClick={togglePlay}
-                                        className="w-12 h-12 rounded-full bg-plum-600 hover:bg-plum-700 text-white flex items-center justify-center flex-shrink-0 transition-all shadow-lg shadow-plum-600/20"
+                                        className={`w-12 h-12 rounded-full ${theme.accentButton} flex items-center justify-center flex-shrink-0 transition-all shadow-lg`}
                                     >
                                         {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-1" />}
                                     </button>
@@ -289,7 +320,7 @@ export const BentoView: React.FC<BentoViewProps> = ({ day, moodOptions, onAddMoo
                                         {bars.map((i) => (
                                             <motion.div
                                                 key={i}
-                                                className="flex-1 bg-plum-400/50 rounded-full"
+                                                className={`flex-1 rounded-full ${theme.glassColor} opacity-80`}
                                                 animate={{ 
                                                     height: isPlaying ? [
                                                         Math.max(10, Math.random() * 100) + '%', 
@@ -309,9 +340,9 @@ export const BentoView: React.FC<BentoViewProps> = ({ day, moodOptions, onAddMoo
                             ) : (
                                 <button 
                                     onClick={() => setIsEditing(true)}
-                                    className="flex flex-col items-center justify-center gap-2 text-plum-600 hover:text-plum-800 transition-colors group w-full h-full"
+                                    className={`flex flex-col items-center justify-center gap-2 ${pSecondary} hover:opacity-90 transition-colors group w-full h-full`}
                                 >
-                                    <div className="p-3 rounded-full bg-plum-100 group-hover:bg-plum-200 transition-colors shadow-inner">
+                                    <div className="p-3 rounded-full bg-white/50 group-hover:bg-white/70 transition-colors shadow-inner">
                                         <Mic size={24} />
                                     </div>
                                     <span className="text-[10px] font-bold uppercase tracking-wider">添加语音</span>
@@ -328,6 +359,7 @@ export const BentoView: React.FC<BentoViewProps> = ({ day, moodOptions, onAddMoo
                         day={day} 
                         initialData={day.memory}
                         moodOptions={moodOptions}
+                        theme={theme}
                         onAddMood={onAddMood}
                         onClose={() => setIsEditing(false)} 
                         onSave={(data) => {
