@@ -407,12 +407,14 @@ const App: React.FC = () => {
             }
         }
         
-        // Update selected day to reflect changes immediately
-        setSelectedDay({
+        // 更新当前选中日期和便当视图，立刻反映最新记忆内容
+        const updatedDay: DayData = {
             ...day,
             hasMemory: true,
-            memory: newMemory
-        });
+            memory: newMemory,
+        };
+        setSelectedDay(updatedDay);
+        setActiveBentoDay(updatedDay);
     };
 
     // Add new mood handler
