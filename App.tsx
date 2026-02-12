@@ -24,6 +24,7 @@ const App: React.FC = () => {
     const [currentTheme, setCurrentTheme] = useState<Theme>(THEMES[0]);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isAuthOpen, setIsAuthOpen] = useState(false);
+    const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
     const [isConnectOpen, setIsConnectOpen] = useState(false);
 
     // Auth State
@@ -434,19 +435,34 @@ const App: React.FC = () => {
         setAuthError(null);
         setAuthLoading(true);
         try {
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email: authEmail,
-                password: authPassword,
-            });
-            if (error) {
-                // 如果用户还没注册，可以简单提示先去 Supabase 后台创建，后面再做注册流程
-                console.error('Sign in error', error);
-                setAuthError(error.message);
-            } else if (data.user) {
-                setUserId(data.user.id);
-                setCurrentUserEmail(data.user.email ?? null);
-                setAuthPassword('');
-                loadMemoriesAndPartnerFromSupabase(data.user.id);
+            if (authMode === 'signin') {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: authEmail,
+                    password: authPassword,
+                });
+                if (error) {
+                    console.error('Sign in error', error);
+                    setAuthError(error.message);
+                } else if (data.user) {
+                    setUserId(data.user.id);
+                    setCurrentUserEmail(data.user.email ?? null);
+                    setAuthPassword('');
+                    loadMemoriesAndPartnerFromSupabase(data.user.id);
+                }
+            } else {
+                const { data, error } = await supabase.auth.signUp({
+                    email: authEmail,
+                    password: authPassword,
+                });
+                if (error) {
+                    console.error('Sign up error', error);
+                    setAuthError(error.message);
+                } else {
+                    setAuthError('注册成功，请到邮箱点击验证链接后再登录。');
+                    if (data.user) {
+                        setAuthMode('signin');
+                    }
+                }
             }
         } finally {
             setAuthLoading(false);
@@ -788,7 +804,7 @@ const App: React.FC = () => {
                         <div className="relative">
                             <button
                                 type="button"
-                                onClick={() => { setIsAuthOpen(!isAuthOpen); setIsSettingsOpen(false); setIsConnectOpen(false); }}
+                                onClick={() => { setIsAuthOpen(!isAuthOpen); setIsSettingsOpen(false); setIsConnectOpen(false); setAuthMode('signin'); setAuthError(null); }}
                                 className={`p-2 rounded-full backdrop-blur-md transition-all ${isAuthOpen ? 'bg-white shadow-lg ' + currentTheme.primaryColor : `${currentTheme.glassColor} ${currentTheme.primaryColor} hover:bg-white/60`}`}
                                 aria-label="登录"
                             >
@@ -830,12 +846,49 @@ const App: React.FC = () => {
                                             </>
                                         ) : (
                                             <form onSubmit={handleAuthSubmit} className="flex flex-col gap-1">
-                                                <div className={`text-[10px] uppercase tracking-[0.2em] ${pFaded} font-bold`}>Sign in</div>
-                                                <input type="email" placeholder="Email" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} className={`bg-white/70 border border-white/60 rounded-xl px-2 py-1 text-[11px] ${pPrimary} ${pPlaceholder} focus:outline-none focus:ring-1 focus:ring-white/50`} />
-                                                <input type="password" placeholder="Password" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} className={`bg-white/70 border border-white/60 rounded-xl px-2 py-1 text-[11px] ${pPrimary} ${pPlaceholder} focus:outline-none focus:ring-1 focus:ring-white/50`} />
-                                                {authError && <div className="text-[10px] text-rose-500 mt-1 line-clamp-2">{authError}</div>}
-                                                <button type="submit" disabled={authLoading || !authEmail || !authPassword} className={`mt-1 self-end text-[10px] uppercase tracking-[0.2em] ${pMuted} hover:opacity-80 disabled:opacity-60`}>
-                                                    {authLoading ? 'Signing in…' : 'Sign in'}
+                                                <div className="flex items-center justify-between">
+                                                    <div className={`text-[10px] uppercase tracking-[0.2em] ${pFaded} font-bold`}>
+                                                        {authMode === 'signin' ? 'Sign in' : 'Sign up'}
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => { setAuthMode(authMode === 'signin' ? 'signup' : 'signin'); setAuthError(null); }}
+                                                        className={`text-[10px] ${pMuted} underline-offset-2 hover:underline`}
+                                                    >
+                                                        {authMode === 'signin' ? '没有账号？注册' : '已有账号？登录'}
+                                                    </button>
+                                                </div>
+                                                <input
+                                                    type="email"
+                                                    placeholder="Email"
+                                                    value={authEmail}
+                                                    onChange={(e) => setAuthEmail(e.target.value)}
+                                                    className={`bg-white/70 border border-white/60 rounded-xl px-2 py-1 text-[11px] ${pPrimary} ${pPlaceholder} focus:outline-none focus:ring-1 focus:ring-white/50`}
+                                                />
+                                                <input
+                                                    type="password"
+                                                    placeholder="Password"
+                                                    value={authPassword}
+                                                    onChange={(e) => setAuthPassword(e.target.value)}
+                                                    className={`bg-white/70 border border-white/60 rounded-xl px-2 py-1 text-[11px] ${pPrimary} ${pPlaceholder} focus:outline-none focus:ring-1 focus:ring-white/50`}
+                                                />
+                                                {authError && (
+                                                    <div className="text-[10px] text-rose-500 mt-1 line-clamp-3">
+                                                        {authError}
+                                                    </div>
+                                                )}
+                                                <button
+                                                    type="submit"
+                                                    disabled={authLoading || !authEmail || !authPassword}
+                                                    className={`mt-1 self-end text-[10px] uppercase tracking-[0.2em] ${pMuted} hover:opacity-80 disabled:opacity-60`}
+                                                >
+                                                    {authLoading
+                                                        ? authMode === 'signin'
+                                                            ? 'Signing in…'
+                                                            : 'Signing up…'
+                                                        : authMode === 'signin'
+                                                            ? 'Sign in'
+                                                            : 'Sign up'}
                                                 </button>
                                             </form>
                                         )}
