@@ -503,7 +503,11 @@ const App: React.FC = () => {
             setProfileCheckDone(false);
             setPartnerId(null);
             setPartnerMemories({});
+            setMemories({});
             setViewMode('mine');
+            try {
+                localStorage.removeItem('21months_memories');
+            } catch (_) {}
         } finally {
             setAuthLoading(false);
         }
