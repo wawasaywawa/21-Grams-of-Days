@@ -117,9 +117,10 @@ export const THEMES: Theme[] = [
     }
 ];
 
-export const generateTimelineDays = (memories: Record<string, Memory>): DayData[] => {
+export const generateTimelineDays = (memories: Record<string, Memory>, startDate: Date = START_DATE): DayData[] => {
     const today = startOfDay(new Date());
-    
+    const baseStart = startOfDay(startDate);
+
     // 1. Start with the target end date
     let endDate = TARGET_END_DATE;
 
@@ -143,11 +144,11 @@ export const generateTimelineDays = (memories: Record<string, Memory>): DayData[
         }
     }
 
-    const totalDays = differenceInDays(endDate, START_DATE) + 1;
+    const totalDays = differenceInDays(endDate, baseStart) + 1;
     const days: DayData[] = [];
 
     for (let i = 0; i < totalDays; i++) {
-        const currentDate = addDays(START_DATE, i);
+        const currentDate = addDays(baseStart, i);
         const dateStr = format(currentDate, 'yyyy-MM-dd');
         
         days.push({
@@ -166,9 +167,11 @@ export const generateTimelineDays = (memories: Record<string, Memory>): DayData[
 /** 合并视图：生成带「我的」与「伴侣」记忆的时间线（同一天可能两者都有） */
 export const generateTimelineDaysWithPartner = (
     memories: Record<string, Memory>,
-    partnerMemories: Record<string, Memory>
+    partnerMemories: Record<string, Memory>,
+    startDate: Date = START_DATE
 ): DayData[] => {
     const today = startOfDay(new Date());
+    const baseStart = startOfDay(startDate);
     let endDate = TARGET_END_DATE;
     if (isAfter(today, endDate)) endDate = today;
     const allKeys = new Set([...Object.keys(memories), ...Object.keys(partnerMemories)]);
@@ -181,10 +184,10 @@ export const generateTimelineDaysWithPartner = (
             if (isAfter(last, endDate)) endDate = last;
         }
     }
-    const totalDays = differenceInDays(endDate, START_DATE) + 1;
+    const totalDays = differenceInDays(endDate, baseStart) + 1;
     const days: DayData[] = [];
     for (let i = 0; i < totalDays; i++) {
-        const currentDate = addDays(START_DATE, i);
+        const currentDate = addDays(baseStart, i);
         const dateStr = format(currentDate, 'yyyy-MM-dd');
         const mine = memories[dateStr];
         const partner = partnerMemories[dateStr];
@@ -206,8 +209,8 @@ export const formatDateDisplay = (date: Date): string => {
     return format(date, 'MMMM d, yyyy');
 };
 
-export const getDayIndex = (date: Date): number => {
-    return differenceInDays(date, START_DATE) + 1;
+export const getDayIndex = (date: Date, baseStart: Date = START_DATE): number => {
+    return differenceInDays(date, startOfDay(baseStart)) + 1;
 }
 
 // Helper to convert file or blob to base64

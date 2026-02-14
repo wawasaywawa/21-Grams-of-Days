@@ -166,7 +166,7 @@ export const StarGrid: React.FC<StarGridProps> = ({
                         {/* 底部时间节点与天数：在线两端，而不是在线上方 */}
                         <div className="flex justify-between mt-3 px-1 text-[10px] md:text-xs font-serif tracking-tight uppercase">
                             <div className={`text-left ${timelineLeftClass ?? 'text-pink-200/80'}`}>
-                                <span className="block text-[9px] md:text-[10px] tracking-[0.18em]">Days from graduation</span>
+                                <span className="block text-[9px] md:text-[10px] tracking-[0.18em]">Days from start</span>
                                 <span className="text-base md:text-lg font-light tracking-normal">
                                     {daysFromStart}
                                 </span>

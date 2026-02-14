@@ -14,9 +14,11 @@ interface BentoViewProps {
     onClose: () => void;
     onSaveMemory: (day: DayData, memoryData: any) => void;
     isMergeView?: boolean;
+    /** 用于计算 DAY OF JOURNEY 的起始日，与时间轴一致 */
+    startDateForIndex?: Date;
 }
 
-export const BentoView: React.FC<BentoViewProps> = ({ day, moodOptions, theme, partnerDisplayName, onAddMood, onClose, onSaveMemory, isMergeView = false }) => {
+export const BentoView: React.FC<BentoViewProps> = ({ day, moodOptions, theme, partnerDisplayName, onAddMood, onClose, onSaveMemory, isMergeView = false, startDateForIndex }) => {
     const pPrimary = theme.panelPrimaryColor ?? theme.primaryColor;
     const pSecondary = theme.panelSecondaryColor ?? theme.secondaryColor;
     const pFaded = theme.panelFadedColor ?? theme.fadedColor;
@@ -25,7 +27,7 @@ export const BentoView: React.FC<BentoViewProps> = ({ day, moodOptions, theme, p
     const [activeTab, setActiveTab] = useState<'mine' | 'partner'>('mine');
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    const dayIndex = getDayIndex(day.date);
+    const dayIndex = getDayIndex(day.date, startDateForIndex);
     const showMerge = isMergeView && (day.memory || day.partnerMemory);
     const displayMemory = showMerge
         ? (activeTab === 'mine' ? day.memory : day.partnerMemory)

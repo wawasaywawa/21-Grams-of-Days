@@ -6,8 +6,8 @@ import { StarGrid } from './components/StarGrid';
 import { BentoView } from './components/BentoView';
 import { LettersModal, type Letter } from './components/LettersModal';
 import { WriteLetterModal } from './components/WriteLetterModal';
-import { Heart, Palette, Check, User, Link2 } from 'lucide-react';
-import { format } from 'date-fns';
+import { Heart, Palette, Check, User, Link2, Calendar } from 'lucide-react';
+import { format, parseISO, startOfDay, isBefore } from 'date-fns';
 import { supabase } from './supabaseClient';
 
 const STORAGE_BUCKET = 'memories';
@@ -51,6 +51,20 @@ const App: React.FC = () => {
     const [inviteSent, setInviteSent] = useState(false);
     const [pendingInvites, setPendingInvites] = useState<{ id: string }[]>([]);
     const [viewMode, setViewMode] = useState<'mine' | 'partner' | 'merge'>('mine');
+
+    // 用户自定义起始日（时间轴起点），持久化到 localStorage
+    const [customStartDate, setCustomStartDate] = useState<Date>(() => {
+        try {
+            const stored = localStorage.getItem('21months_start_date');
+            if (stored) {
+                const d = startOfDay(parseISO(stored));
+                if (!isNaN(d.getTime())) return d;
+            }
+        } catch (_) {}
+        return START_DATE;
+    });
+    const [isStartDateOpen, setIsStartDateOpen] = useState(false);
+    const [startDateInput, setStartDateInput] = useState('');
 
     const [lettersModalOpen, setLettersModalOpen] = useState(false);
     const [isWriteLetterOpen, setIsWriteLetterOpen] = useState(false);
@@ -281,6 +295,13 @@ const App: React.FC = () => {
             return () => clearTimeout(t);
         }
     }, [userId, currentUserEmail, profileCheckDone, myUsername, isAuthOpen]);
+
+    // Persist custom start date
+    useEffect(() => {
+        try {
+            localStorage.setItem('21months_start_date', format(customStartDate, 'yyyy-MM-dd'));
+        } catch (_) {}
+    }, [customStartDate]);
 
     // Apply Theme to Body
     useEffect(() => {
@@ -654,16 +675,14 @@ const App: React.FC = () => {
     const days = useMemo(() => {
         if (partnerId) {
             if (viewMode === 'merge') {
-                return generateTimelineDaysWithPartner(memories, partnerMemories);
+                return generateTimelineDaysWithPartner(memories, partnerMemories, customStartDate);
             }
             if (viewMode === 'partner') {
-                // 只看对方：用伴侣记忆生成时间轴
-                return generateTimelineDays(partnerMemories);
+                return generateTimelineDays(partnerMemories, customStartDate);
             }
         }
-        // 默认：只看自己
-        return generateTimelineDays(memories);
-    }, [memories, partnerMemories, viewMode, partnerId]);
+        return generateTimelineDays(memories, customStartDate);
+    }, [memories, partnerMemories, viewMode, partnerId, customStartDate]);
 
     // 不同主题下，时间线文字颜色微调（仅针对亮底主题）
     const timelineLeftClass =
@@ -755,17 +774,17 @@ const App: React.FC = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
                     >
-                        <h1 className={`font-serif text-4xl md:text-5xl font-medium tracking-tight ${currentTheme.primaryColor} transition-colors duration-500`}>21 Months</h1>
+                        <h1 className={`font-serif text-4xl md:text-5xl font-medium tracking-tight ${currentTheme.primaryColor} transition-colors duration-500`}>Remember Me</h1>
                     </motion.div>
                 </div>
                 
                 <div className="pointer-events-auto flex items-start gap-3 md:gap-4 flex-wrap">
-                    {/* 主题 / 登录 / 和ta连接：三个图标，点击展开对应面板；点击空白处关闭 */}
-                    {(isSettingsOpen || isAuthOpen || isConnectOpen) && (
+                    {/* 主题 / 登录 / 和ta连接 / 起始日：四个图标格式一致，点击空白处关闭 */}
+                    {(isSettingsOpen || isAuthOpen || isConnectOpen || isStartDateOpen) && (
                         <div
                             className="fixed inset-0 z-30"
                             aria-hidden
-                            onClick={() => { setIsSettingsOpen(false); setIsAuthOpen(false); setIsConnectOpen(false); }}
+                            onClick={() => { setIsSettingsOpen(false); setIsAuthOpen(false); setIsConnectOpen(false); setIsStartDateOpen(false); }}
                         />
                     )}
                     <div className="relative z-40 flex items-center gap-3">
@@ -943,19 +962,76 @@ const App: React.FC = () => {
                                 )}
                             </AnimatePresence>
                         </div>
+
+                        {/* 起始日：与主题/登录/连接同款的圆形图标，位于连接图标右侧 */}
+                        <div className="relative">
+                            <button
+                                type="button"
+                                onClick={() => { setIsStartDateOpen(!isStartDateOpen); setIsSettingsOpen(false); setIsAuthOpen(false); setIsConnectOpen(false); setStartDateInput(format(customStartDate, 'yyyy-MM-dd')); }}
+                                className={`p-2 rounded-full backdrop-blur-md transition-all ${isStartDateOpen ? 'bg-white shadow-lg ' + currentTheme.primaryColor : `${currentTheme.glassColor} ${currentTheme.primaryColor} hover:bg-white/60`}`}
+                                aria-label="设定起始日"
+                                title="设定起始日"
+                            >
+                                <Calendar size={20} />
+                            </button>
+                            <AnimatePresence>
+                                {isStartDateOpen && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                                        className="absolute right-0 top-full mt-3 w-52 p-4 rounded-2xl bg-white/80 backdrop-blur-xl shadow-xl border border-white/50 flex flex-col gap-2 z-50 origin-top-right"
+                                    >
+                                        <span className={`text-[10px] font-bold uppercase px-1 mb-1 ${pFaded}`}>起始日</span>
+                                        <input
+                                            type="date"
+                                            value={startDateInput}
+                                            onChange={(e) => setStartDateInput(e.target.value)}
+                                            className={`w-full rounded-lg px-2 py-1 text-[11px] bg-white/70 border border-white/60 ${pPrimary} ${pPlaceholder} [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:pointer-events-none`}
+                                        />
+                                        <div className="flex gap-2 mt-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const d = startDateInput ? parseISO(startDateInput) : null;
+                                                    if (d && !isNaN(d.getTime())) {
+                                                        const base = startOfDay(d);
+                                                        const today = startOfDay(new Date());
+                                                        if (!isBefore(today, base)) {
+                                                            setCustomStartDate(base);
+                                                            setIsStartDateOpen(false);
+                                                        }
+                                                    }
+                                                }}
+                                                className={`flex-1 px-3 py-1.5 rounded-xl text-xs font-medium ${currentTheme.accentButton}`}
+                                            >
+                                                确定
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => { setCustomStartDate(START_DATE); setStartDateInput(format(START_DATE, 'yyyy-MM-dd')); setIsStartDateOpen(false); }}
+                                                className={`px-3 py-1.5 rounded-xl text-xs font-medium bg-white/60 hover:bg-white/80 ${pSecondary}`}
+                                            >
+                                                重置默认
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
                     </div>
 
-                    {/* 日期范围 + 合并时显示视图切换（主界面简洁：仅在有合并视图时在右侧显示） */}
-                    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }} className="hidden md:flex flex-col items-end gap-2">
+                    {/* 日期范围：仅展示，与图标同一行 */}
+                    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }} className="hidden md:flex flex-col items-end justify-center">
                         <div className={`text-xl font-light font-serif italic ${currentTheme.secondaryColor} transition-colors duration-500`}>
-                            {format(START_DATE, 'MMM yyyy')} — {format(displayEndDate, 'MMM yyyy')}
+                            {format(customStartDate, 'MMM yyyy')} — {format(displayEndDate, 'MMM yyyy')}
                         </div>
                     </motion.div>
                 </div>
             </header>
 
-            {/* Main Content */}
-            <main className="relative z-10 pt-32 pb-20 min-h-screen flex flex-col items-center justify-center">
+            {/* Main Content：可无限向上滚动查看从起始日到今天的全部星点 */}
+            <main className="relative z-10 pt-32 pb-20 min-h-screen flex flex-col items-center overflow-y-auto">
                 {isLoaded && (
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
@@ -971,7 +1047,7 @@ const App: React.FC = () => {
                             showMergeLegend={!!partnerId}
                             tooltipClass={currentTheme.tooltipClass ?? 'bg-plum-900/80 text-white backdrop-blur-sm'}
                             selectedDay={selectedDay}
-                            startDate={START_DATE}
+                            startDate={customStartDate}
                             endDate={displayEndDate}
                             viewMode={viewMode}
                             onChangeViewMode={partnerId ? setViewMode : undefined}
@@ -1060,6 +1136,7 @@ const App: React.FC = () => {
                         onClose={() => setActiveBentoDay(null)}
                         onSaveMemory={handleSaveMemory}
                         isMergeView={viewMode === 'merge' && !!(activeBentoDay.memory || activeBentoDay.partnerMemory)}
+                        startDateForIndex={customStartDate}
                     />
                 )}
             </AnimatePresence>

@@ -1,6 +1,6 @@
 {
-  "name": "21 Months",
-  "description": "A romantic, interactive timeline visualizing the 21 months between graduation and a birthday as a star grid with deep-dive bento box memories.",
+  "name": "Remember Me",
+  "description": "An interactive timeline from a start date you choose, with star grid and bento box memories.",
   "requestFramePermissions": [
     "microphone"
   ]
